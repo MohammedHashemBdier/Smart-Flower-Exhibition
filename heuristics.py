@@ -7,6 +7,7 @@ def pavilion_total(needs):
 def distance_score(robot_x, robot_y, pavilion_x, pavilion_y, needs):
     """كلفة تقريبية للوصول إلى جناح واحد مع تجاهل الأجنحة المنجزة."""
 
+    # If pavilion has no needs, make it very costly to prefer unfinished pavilions
     return abs(robot_x - pavilion_x) + abs(robot_y - pavilion_y) + (9999 * int(sum(needs) == 0))
 
 

@@ -68,3 +68,9 @@ class SolutionPath(Fact):
     """مؤشر لطباعة المسار النهائي بشكل تراجعي."""
 
     current_node_id = Field(int, mandatory=True)
+
+
+class MaxLoad(Fact):
+    """الحمولة القصوى للروبوت (عدد الباقات ككل)."""
+
+    value = Field(int, mandatory=True)

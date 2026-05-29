@@ -1,0 +1,11 @@
+colorama==0.4.6
+experta @ git+https://github.com/nilp0inter/experta.git@c6d5834b123861f5ae09e7d07027dc98bec58741
+frozendict==2.4.7
+iniconfig==2.3.0
+packaging==26.2
+pluggy==1.6.0
+Pygments==2.20.0
+pytest==9.0.3
+schema==0.6.7
+PyMuPDF
+reportlab

@@ -1,0 +1,14 @@
+python main.py --config game_config.json
+
+python main.py --random --seed 42
+
+python scripts/generate_initial_facts.py --config game_config.json --out initial_facts.py
+python main.py
+
+.\\venv\\Scripts\\Activate.ps1
+pip install pytest experta
+
+.\\venv\\Scripts\\Activate.ps1
+pytest -q
+
+python -m pytest -q
