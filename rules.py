@@ -1,243 +1,297 @@
-# --- حل مشكلة توافقية مكتبة experta مع إصدارات بايثون الحديثة ---
 import collections
 import collections.abc
+
 collections.Mapping = collections.abc.Mapping
-# -------------------------------------------------------------
 
-from experta import *
-from facts import StateNode, GridConfig, ClosedState
-from heuristics import calculate_h
+from experta import AS, KnowledgeEngine, MATCH, NOT, Rule, TEST
 
-class NodeCounter(Fact):
-    """حقيقة لتوليد معرفات فريدة للعقد (ID Counter) بدلاً من الحلقات"""
-    current_id = Field(int, default=1)
-
-class PavilionConfig(Fact):
-    """تخزين مواقع الأجنحة الثابتة في المعرض"""
-    pavilion_id = Field(int, mandatory=True)
-    x = Field(int, mandatory=True)
-    y = Field(int, mandatory=True)
-
-class SolutionPath(Fact):
-    """حقيقة لتفعيل آلية طباعة المسار العكسية البرمجية النظيفة"""
-    current_node_id = Field(int, mandatory=True)
+from facts import ClosedState, GridConfig, NodeCounter, Pavilion, SolutionPath, StateNode
+from heuristics import all_needs_zero, best_pavilion_id, calculate_h, carried_total, has_invalid_coordinates
 
 
 class SmartFlowerEngine(KnowledgeEngine):
-
-    # ==========================================
-    # 1. قاعدة التحقق من الوصول للهدف (Goal Test)
-    # ==========================================
     @Rule(
         AS.node << StateNode(
             node_id=MATCH.nid,
             status="active",
+            robot_x=MATCH.rx,
+            robot_y=MATCH.ry,
+            target_x=MATCH.tx,
+            target_y=MATCH.ty,
+            carried_pavilion_id=MATCH.cpid,
+            carried_load=(),
             p1_needs=(0, 0, 0),
             p2_needs=(0, 0),
             p3_needs=(0, 0),
-            p4_needs=(0, 0)
+            p4_needs=(0, 0),
         ),
-        salience=200
+        salience=500,
     )
-    def goal_reached(self, node, nid):
+    def goal_reached(self, node, nid, rx, ry, tx, ty, cpid):
         print("\n==============================================")
-        print("🎉 SUCCESS: Optimal solution path found via A*!")
+        print("Success: all pavilion demands were satisfied.")
         print("==============================================\n")
         self.declare(SolutionPath(current_node_id=nid))
-        self.modify(node, status="closed")
+        self.modify(node, status="closed", carried_pavilion_id=cpid, robot_x=rx, robot_y=ry, target_x=tx, target_y=ty)
 
-    # ==========================================
-    # 2. قاعدة اختيار العقدة الأفضل للاستكشاف (A* Selection)
-    # ==========================================
     @Rule(
-        AS.node << StateNode(node_id=MATCH.nid, status="open", f=MATCH.f1,
-                             robot_x=MATCH.rx, robot_y=MATCH.ry,
-                             p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n),
+        AS.node << StateNode(
+            node_id=MATCH.nid,
+            status="open",
+            f=MATCH.f1,
+            robot_x=MATCH.rx,
+            robot_y=MATCH.ry,
+            target_x=MATCH.tx,
+            target_y=MATCH.ty,
+            carried_pavilion_id=MATCH.cpid,
+            p1_needs=MATCH.p1n,
+            p2_needs=MATCH.p2n,
+            p3_needs=MATCH.p3n,
+            p4_needs=MATCH.p4n,
+        ),
         NOT(StateNode(status="open", f=MATCH.f2 & TEST(lambda f1, f2: f2 < f1))),
-        salience=150
+        salience=400,
     )
-    def expand_best_node(self, node, rx, ry, p1n, p2n, p3n, p4n):
-        # تسجيل الحالة الحالية في القائمة المغلقة لمنع العودة إليها
-        self.declare(ClosedState(robot_x=rx, robot_y=ry, p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n))
+    def activate_best_node(self, node, rx, ry, tx, ty, cpid, p1n, p2n, p3n, p4n):
+        self.declare(ClosedState(robot_x=rx, robot_y=ry, target_x=tx, target_y=ty, carried_pavilion_id=cpid, p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n))
         self.modify(node, status="active")
 
-    # ==========================================
-    # 3. قواعد الحركة الذكية المميّزة بحظر التكرار
-    # ==========================================
-    
     @Rule(
-        StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, node_id=MATCH.nid, g=MATCH.g_val,
-                  p1_carried=MATCH.p1c, p2_carried=MATCH.p2c, p3_carried=MATCH.p3c, p4_carried=MATCH.p4c,
-                  p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n),
-        GridConfig(max_x=MATCH.mx),
-        TEST(lambda rx, mx: rx < mx),
-        # شرط حظر التكرار: نمنع التوسع إذا كانت الخلية القادمة تم استكشافها سابقاً بنفس الاحتياجات
-        NOT(ClosedState(robot_x=MATCH.nrx & TEST(lambda rx, nrx: nrx == rx + 1), robot_y=MATCH.ry,
-                        p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n)),
-        AS.counter << NodeCounter(current_id=MATCH.cid),
-        salience=100
+        AS.node << StateNode(status="open", printed=False, node_id=MATCH.nid, parent_id=MATCH.pid, robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, g=MATCH.g, h=MATCH.h, f=MATCH.f, action=MATCH.action, carried_pavilion_name=MATCH.cname),
+        salience=350,
     )
-    def move_right(self, nid, g_val, rx, ry, p1c, p2c, p3c, p4c, p1n, p2n, p3n, p4n, counter, cid):
-        new_h = calculate_h(rx + 1, ry, p1n, p2n, p3n, p4n)
-        self.declare(StateNode(
-            node_id=cid, parent_id=nid, robot_x=rx + 1, robot_y=ry,
-            p1_carried=p1c, p2_carried=p2c, p3_carried=p3c, p4_carried=p4c,
-            p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n,
-            g=g_val + 1, h=new_h, f=(g_val + 1) + new_h, action="Move Right", status="open"
-        ))
-        self.modify(counter, current_id=cid + 1)
+    def print_tree_node(self, node, nid, pid, rx, ry, tx, ty, g, h, f, action, cname):
+        print(f"[Tree] id={nid} parent={pid} pos=({rx},{ry}) target=({tx},{ty}) g={g} h={h} f={f} action={action} carry={cname}")
+        self.modify(node, printed=True)
 
     @Rule(
-        StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, node_id=MATCH.nid, g=MATCH.g_val,
-                  p1_carried=MATCH.p1c, p2_carried=MATCH.p2c, p3_carried=MATCH.p3c, p4_carried=MATCH.p4c,
-                  p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n),
-        TEST(lambda rx: rx > 0),
-        NOT(ClosedState(robot_x=MATCH.nrx & TEST(lambda rx, nrx: nrx == rx - 1), robot_y=MATCH.ry,
-                        p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n)),
-        AS.counter << NodeCounter(current_id=MATCH.cid),
-        salience=100
+        AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=MATCH.cpid, carried_load=MATCH.load),
+        GridConfig(max_x=MATCH.max_x),
+        TEST(lambda rx, tx, max_x: (rx < tx) and (rx < max_x)),
+        NOT(ClosedState(robot_x=MATCH.nrx & TEST(lambda rx, nrx: nrx == rx + 1), robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, carried_pavilion_id=MATCH.cpid, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n)),
+        AS.counter << NodeCounter(next_id=MATCH.next_id),
+        salience=300,
     )
-    def move_left(self, nid, g_val, rx, ry, p1c, p2c, p3c, p4c, p1n, p2n, p3n, p4n, counter, cid):
-        new_h = calculate_h(rx - 1, ry, p1n, p2n, p3n, p4n)
-        self.declare(StateNode(
-            node_id=cid, parent_id=nid, robot_x=rx - 1, robot_y=ry,
-            p1_carried=p1c, p2_carried=p2c, p3_carried=p3c, p4_carried=p4c,
-            p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n,
-            g=g_val + 1, h=new_h, f=(g_val + 1) + new_h, action="Move Left", status="open"
-        ))
-        self.modify(counter, current_id=cid + 1)
+    def move_right(self, node, nid, g, rx, ry, tx, ty, p1n, p2n, p3n, p4n, cpid, load, counter, next_id):
+        new_x = rx + 1
+        new_h = calculate_h(new_x, ry, p1n, p2n, p3n, p4n)
+        self.declare(StateNode(node_id=next_id, parent_id=nid, robot_x=new_x, robot_y=ry, target_x=tx, target_y=ty, carried_pavilion_id=cpid, carried_pavilion_name=self._carried_name(cpid), carried_load=load, p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n, g=g + 1, h=new_h, f=(g + 1) + new_h, action="Move Right", status="open", printed=False))
+        self.modify(counter, next_id=next_id + 1)
+        self.modify(node, status="closed")
 
     @Rule(
-        StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, node_id=MATCH.nid, g=MATCH.g_val,
-                  p1_carried=MATCH.p1c, p2_carried=MATCH.p2c, p3_carried=MATCH.p3c, p4_carried=MATCH.p4c,
-                  p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n),
-        GridConfig(max_y=MATCH.my),
-        TEST(lambda ry, my: ry < my),
-        NOT(ClosedState(robot_x=MATCH.rx, robot_y=MATCH.nry & TEST(lambda ry, nry: nry == ry + 1),
-                        p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n)),
-        AS.counter << NodeCounter(current_id=MATCH.cid),
-        salience=100
+        AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=MATCH.cpid, carried_load=MATCH.load),
+        TEST(lambda rx, tx: rx > tx),
+        NOT(ClosedState(robot_x=MATCH.nrx & TEST(lambda rx, nrx: nrx == rx - 1), robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, carried_pavilion_id=MATCH.cpid, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n)),
+        AS.counter << NodeCounter(next_id=MATCH.next_id),
+        salience=300,
     )
-    def move_up(self, nid, g_val, rx, ry, p1c, p2c, p3c, p4c, p1n, p2n, p3n, p4n, counter, cid):
-        new_h = calculate_h(rx, ry + 1, p1n, p2n, p3n, p4n)
-        self.declare(StateNode(
-            node_id=cid, parent_id=nid, robot_x=rx, robot_y=ry + 1,
-            p1_carried=p1c, p2_carried=p2c, p3_carried=p3c, p4_carried=p4c,
-            p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n,
-            g=g_val + 1, h=new_h, f=(g_val + 1) + new_h, action="Move Up", status="open"
-        ))
-        self.modify(counter, current_id=cid + 1)
+    def move_left(self, node, nid, g, rx, ry, tx, ty, p1n, p2n, p3n, p4n, cpid, load, counter, next_id):
+        new_x = rx - 1
+        new_h = calculate_h(new_x, ry, p1n, p2n, p3n, p4n)
+        self.declare(StateNode(node_id=next_id, parent_id=nid, robot_x=new_x, robot_y=ry, target_x=tx, target_y=ty, carried_pavilion_id=cpid, carried_pavilion_name=self._carried_name(cpid), carried_load=load, p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n, g=g + 1, h=new_h, f=(g + 1) + new_h, action="Move Left", status="open", printed=False))
+        self.modify(counter, next_id=next_id + 1)
+        self.modify(node, status="closed")
 
     @Rule(
-        StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, node_id=MATCH.nid, g=MATCH.g_val,
-                  p1_carried=MATCH.p1c, p2_carried=MATCH.p2c, p3_carried=MATCH.p3c, p4_carried=MATCH.p4c,
-                  p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n),
-        TEST(lambda ry: ry > 0),
-        NOT(ClosedState(robot_x=MATCH.rx, robot_y=MATCH.nry & TEST(lambda ry, nry: nry == ry - 1),
-                        p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n)),
-        AS.counter << NodeCounter(current_id=MATCH.cid),
-        salience=100
+        AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=MATCH.cpid, carried_load=MATCH.load),
+        GridConfig(max_y=MATCH.max_y),
+        TEST(lambda rx, tx, ry, ty, max_y: (rx == tx) and (ry < ty) and (ry < max_y)),
+        NOT(ClosedState(robot_x=MATCH.rx, robot_y=MATCH.nry & TEST(lambda ry, nry: nry == ry + 1), target_x=MATCH.tx, target_y=MATCH.ty, carried_pavilion_id=MATCH.cpid, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n)),
+        AS.counter << NodeCounter(next_id=MATCH.next_id),
+        salience=300,
     )
-    def move_down(self, nid, g_val, rx, ry, p1c, p2c, p3c, p4c, p1n, p2n, p3n, p4n, counter, cid):
-        new_h = calculate_h(rx, ry - 1, p1n, p2n, p3n, p4n)
-        self.declare(StateNode(
-            node_id=cid, parent_id=nid, robot_x=rx, ry=ry - 1,
-            p1_carried=p1c, p2_carried=p2c, p3_carried=p3c, p4_carried=p4c,
-            p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n,
-            g=g_val + 1, h=new_h, f=(g_val + 1) + new_h, action="Move Down", status="open"
-        ))
-        self.modify(counter, current_id=cid + 1)
+    def move_up(self, node, nid, g, rx, ry, tx, ty, p1n, p2n, p3n, p4n, cpid, load, counter, next_id):
+        new_y = ry + 1
+        new_h = calculate_h(rx, new_y, p1n, p2n, p3n, p4n)
+        self.declare(StateNode(node_id=next_id, parent_id=nid, robot_x=rx, robot_y=new_y, target_x=tx, target_y=ty, carried_pavilion_id=cpid, carried_pavilion_name=self._carried_name(cpid), carried_load=load, p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n, g=g + 1, h=new_h, f=(g + 1) + new_h, action="Move Up", status="open", printed=False))
+        self.modify(counter, next_id=next_id + 1)
+        self.modify(node, status="closed")
 
-    # ==========================================
-    # 4. قاعدة تحميل الباقات من المستودع
-    # ==========================================
     @Rule(
-        StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, node_id=MATCH.nid, g=MATCH.g_val,
-                  p1_carried=(0,0,0), p2_carried=(0,0), p3_carried=(0,0), p4_carried=(0,0),
-                  p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n),
+        AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=MATCH.cpid, carried_load=MATCH.load),
+        TEST(lambda rx, tx, ry, ty: (rx == tx) and (ry > ty)),
+        NOT(ClosedState(robot_x=MATCH.rx, robot_y=MATCH.nry & TEST(lambda ry, nry: nry == ry - 1), target_x=MATCH.tx, target_y=MATCH.ty, carried_pavilion_id=MATCH.cpid, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n)),
+        AS.counter << NodeCounter(next_id=MATCH.next_id),
+        salience=300,
+    )
+    def move_down(self, node, nid, g, rx, ry, tx, ty, p1n, p2n, p3n, p4n, cpid, load, counter, next_id):
+        new_y = ry - 1
+        new_h = calculate_h(rx, new_y, p1n, p2n, p3n, p4n)
+        self.declare(StateNode(node_id=next_id, parent_id=nid, robot_x=rx, robot_y=new_y, target_x=tx, target_y=ty, carried_pavilion_id=cpid, carried_pavilion_name=self._carried_name(cpid), carried_load=load, p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n, g=g + 1, h=new_h, f=(g + 1) + new_h, action="Move Down", status="open", printed=False))
+        self.modify(counter, next_id=next_id + 1)
+        self.modify(node, status="closed")
+
+    @Rule(
+        AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=0, carried_load=()),
         GridConfig(warehouse_x=MATCH.wx, warehouse_y=MATCH.wy),
+        Pavilion(pavilion_id=1, x=MATCH.px, y=MATCH.py, name=MATCH.name1, needs=MATCH.need1),
         TEST(lambda rx, ry, wx, wy: rx == wx and ry == wy),
-        TEST(lambda p1n, p2n, p3n, p4n: sum(p1n) + sum(p2n) + sum(p3n) + sum(p4n) > 0),
-        AS.counter << NodeCounter(current_id=MATCH.cid),
-        salience=110
+        TEST(lambda need1: sum(need1) > 0),
+        TEST(lambda rx, ry, p1n, p2n, p3n, p4n: best_pavilion_id(rx, ry, p1n, p2n, p3n, p4n) == 1),
+        AS.counter << NodeCounter(next_id=MATCH.next_id),
+        salience=280,
     )
-    def load_bouquets(self, nid, g_val, rx, ry, p1n, p2n, p3n, p4n, counter, cid):
-        new_h = calculate_h(rx, ry, p1n, p2n, p3n, p4n)
-        self.declare(StateNode(
-            node_id=cid, parent_id=nid, robot_x=rx, robot_y=ry,
-            p1_carried=p1n, p2_carried=p2n, p3_carried=p3n, p4_carried=p4n,
-            p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n,
-            g=g_val + 1, h=new_h, f=(g_val + 1) + new_h, action="Load Bouquets from Warehouse", status="open"
-        ))
-        self.modify(counter, current_id=cid + 1)
+    def load_pavilion_1(self, node, nid, g, rx, ry, p1n, p2n, p3n, p4n, px, py, name1, need1, counter, next_id):
+        new_h = calculate_h(rx, ry, (0, 0, 0), p2n, p3n, p4n)
+        self.declare(StateNode(node_id=next_id, parent_id=nid, robot_x=rx, robot_y=ry, target_x=px, target_y=py, carried_pavilion_id=1, carried_pavilion_name=name1, carried_load=need1, p1_needs=(0, 0, 0), p2_needs=p2n, p3_needs=p3n, p4_needs=p4n, g=g + 1, h=new_h, f=(g + 1) + new_h, action="Load Rose Batch", status="open", printed=False))
+        self.modify(counter, next_id=next_id + 1)
+        self.modify(node, status="closed")
 
-    # ==========================================
-    # 5. قاعدة تفريغ الباقات في الأجنحة
-    # ==========================================
     @Rule(
-        StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, node_id=MATCH.nid, g=MATCH.g_val,
-                  p1_carried=MATCH.p1c, p2_carried=MATCH.p2c, p3_carried=MATCH.p3c, p4_carried=MATCH.p4c,
-                  p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n),
-        PavilionConfig(pavilion_id=MATCH.pid, x=MATCH.px, y=MATCH.py),
-        TEST(lambda rx, ry, px, py: rx == px and ry == py),
-        TEST(lambda pid, p1c, p2c, p3c, p4c: 
-             (pid == 1 and sum(p1c) > 0) or (pid == 2 and sum(p2c) > 0) or 
-             (pid == 3 and sum(p3c) > 0) or (pid == 4 and sum(p4c) > 0)),
-        AS.counter << NodeCounter(current_id=MATCH.cid),
-        salience=120
+        AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=0, carried_load=()),
+        GridConfig(warehouse_x=MATCH.wx, warehouse_y=MATCH.wy),
+        Pavilion(pavilion_id=2, x=MATCH.px, y=MATCH.py, name=MATCH.name2, needs=MATCH.need2),
+        TEST(lambda rx, ry, wx, wy: rx == wx and ry == wy),
+        TEST(lambda need2: sum(need2) > 0),
+        TEST(lambda rx, ry, p1n, p2n, p3n, p4n: best_pavilion_id(rx, ry, p1n, p2n, p3n, p4n) == 2),
+        AS.counter << NodeCounter(next_id=MATCH.next_id),
+        salience=280,
     )
-    def unload_bouquets(self, nid, g_val, rx, ry, p1c, p2c, p3c, p4c, p1n, p2n, p3n, p4n, pid, counter, cid):
-        new_p1n = (0, 0, 0) if pid == 1 else p1n
-        new_p1c = (0, 0, 0) if pid == 1 else p1c
-        new_p2n = (0, 0) if pid == 2 else p2n
-        new_p2c = (0, 0) if pid == 2 else p2c
-        new_p3n = (0, 0) if pid == 3 else p3n
-        new_p3c = (0, 0) if pid == 3 else p3c
-        new_p4n = (0, 0) if pid == 4 else p4n
-        new_p4c = (0, 0) if pid == 4 else p4c
+    def load_pavilion_2(self, node, nid, g, rx, ry, p1n, p2n, p3n, p4n, px, py, name2, need2, counter, next_id):
+        new_h = calculate_h(rx, ry, p1n, (0, 0), p3n, p4n)
+        self.declare(StateNode(node_id=next_id, parent_id=nid, robot_x=rx, robot_y=ry, target_x=px, target_y=py, carried_pavilion_id=2, carried_pavilion_name=name2, carried_load=need2, p1_needs=p1n, p2_needs=(0, 0), p3_needs=p3n, p4_needs=p4n, g=g + 1, h=new_h, f=(g + 1) + new_h, action="Load Tulip Batch", status="open", printed=False))
+        self.modify(counter, next_id=next_id + 1)
+        self.modify(node, status="closed")
 
-        new_h = calculate_h(rx, ry, new_p1n, new_p2n, new_p3n, new_p4n)
-        
-        self.declare(StateNode(
-            node_id=cid, parent_id=nid, robot_x=rx, robot_y=ry,
-            p1_carried=new_p1c, p2_carried=new_p2c, p3_carried=new_p3c, p4_carried=new_p4c,
-            p1_needs=new_p1n, p2_needs=new_p2n, p3_needs=new_p3n, p4_needs=new_p4n,
-            g=g_val + 1, h=new_h, f=(g_val + 1) + new_h, action=f"Unload Bouquets at Pavilion {pid}", status="open"
-        ))
-        self.modify(counter, current_id=cid + 1)
+    @Rule(
+        AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=0, carried_load=()),
+        GridConfig(warehouse_x=MATCH.wx, warehouse_y=MATCH.wy),
+        Pavilion(pavilion_id=3, x=MATCH.px, y=MATCH.py, name=MATCH.name3, needs=MATCH.need3),
+        TEST(lambda rx, ry, wx, wy: rx == wx and ry == wy),
+        TEST(lambda need3: sum(need3) > 0),
+        TEST(lambda rx, ry, p1n, p2n, p3n, p4n: best_pavilion_id(rx, ry, p1n, p2n, p3n, p4n) == 3),
+        AS.counter << NodeCounter(next_id=MATCH.next_id),
+        salience=280,
+    )
+    def load_pavilion_3(self, node, nid, g, rx, ry, p1n, p2n, p3n, p4n, px, py, name3, need3, counter, next_id):
+        new_h = calculate_h(rx, ry, p1n, p2n, (0, 0), p4n)
+        self.declare(StateNode(node_id=next_id, parent_id=nid, robot_x=rx, robot_y=ry, target_x=px, target_y=py, carried_pavilion_id=3, carried_pavilion_name=name3, carried_load=need3, p1_needs=p1n, p2_needs=p2n, p3_needs=(0, 0), p4_needs=p4n, g=g + 1, h=new_h, f=(g + 1) + new_h, action="Load Orchid Batch", status="open", printed=False))
+        self.modify(counter, next_id=next_id + 1)
+        self.modify(node, status="closed")
 
-    # ==========================================
-    # 6. قاعدة إغلاق العقدة المستهلكة
-    # ==========================================
+    @Rule(
+        AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=0, carried_load=()),
+        GridConfig(warehouse_x=MATCH.wx, warehouse_y=MATCH.wy),
+        Pavilion(pavilion_id=4, x=MATCH.px, y=MATCH.py, name=MATCH.name4, needs=MATCH.need4),
+        TEST(lambda rx, ry, wx, wy: rx == wx and ry == wy),
+        TEST(lambda need4: sum(need4) > 0),
+        TEST(lambda rx, ry, p1n, p2n, p3n, p4n: best_pavilion_id(rx, ry, p1n, p2n, p3n, p4n) == 4),
+        AS.counter << NodeCounter(next_id=MATCH.next_id),
+        salience=280,
+    )
+    def load_pavilion_4(self, node, nid, g, rx, ry, p1n, p2n, p3n, p4n, px, py, name4, need4, counter, next_id):
+        new_h = calculate_h(rx, ry, p1n, p2n, p3n, (0, 0))
+        self.declare(StateNode(node_id=next_id, parent_id=nid, robot_x=rx, robot_y=ry, target_x=px, target_y=py, carried_pavilion_id=4, carried_pavilion_name=name4, carried_load=need4, p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=(0, 0), g=g + 1, h=new_h, f=(g + 1) + new_h, action="Load Goliat Rose Batch", status="open", printed=False))
+        self.modify(counter, next_id=next_id + 1)
+        self.modify(node, status="closed")
+
+    @Rule(
+        AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=1, carried_load=MATCH.load),
+        Pavilion(pavilion_id=1, x=MATCH.px, y=MATCH.py, name=MATCH.name1),
+        TEST(lambda rx, ry, px, py: rx == px and ry == py),
+        TEST(lambda load: carried_total(load) > 0),
+        AS.counter << NodeCounter(next_id=MATCH.next_id),
+        salience=260,
+    )
+    def unload_pavilion_1(self, node, nid, g, rx, ry, tx, ty, p1n, p2n, p3n, p4n, name1, counter, next_id):
+        new_h = calculate_h(rx, ry, (0, 0, 0), p2n, p3n, p4n)
+        self.declare(StateNode(node_id=next_id, parent_id=nid, robot_x=rx, robot_y=ry, target_x=3, target_y=2, carried_pavilion_id=0, carried_pavilion_name="", carried_load=(), p1_needs=(0, 0, 0), p2_needs=p2n, p3_needs=p3n, p4_needs=p4n, g=g + 1, h=new_h, f=(g + 1) + new_h, action=f"Unload Rose Batch at {name1}", status="open", printed=False))
+        self.modify(counter, next_id=next_id + 1)
+        self.modify(node, status="closed")
+
+    @Rule(
+        AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=2, carried_load=MATCH.load),
+        Pavilion(pavilion_id=2, x=MATCH.px, y=MATCH.py, name=MATCH.name2),
+        TEST(lambda rx, ry, px, py: rx == px and ry == py),
+        TEST(lambda load: carried_total(load) > 0),
+        AS.counter << NodeCounter(next_id=MATCH.next_id),
+        salience=260,
+    )
+    def unload_pavilion_2(self, node, nid, g, rx, ry, tx, ty, p1n, p2n, p3n, p4n, name2, counter, next_id):
+        new_h = calculate_h(rx, ry, p1n, (0, 0), p3n, p4n)
+        self.declare(StateNode(node_id=next_id, parent_id=nid, robot_x=rx, robot_y=ry, target_x=3, target_y=2, carried_pavilion_id=0, carried_pavilion_name="", carried_load=(), p1_needs=p1n, p2_needs=(0, 0), p3_needs=p3n, p4_needs=p4n, g=g + 1, h=new_h, f=(g + 1) + new_h, action=f"Unload Tulip Batch at {name2}", status="open", printed=False))
+        self.modify(counter, next_id=next_id + 1)
+        self.modify(node, status="closed")
+
+    @Rule(
+        AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=3, carried_load=MATCH.load),
+        Pavilion(pavilion_id=3, x=MATCH.px, y=MATCH.py, name=MATCH.name3),
+        TEST(lambda rx, ry, px, py: rx == px and ry == py),
+        TEST(lambda load: carried_total(load) > 0),
+        AS.counter << NodeCounter(next_id=MATCH.next_id),
+        salience=260,
+    )
+    def unload_pavilion_3(self, node, nid, g, rx, ry, tx, ty, p1n, p2n, p3n, p4n, name3, counter, next_id):
+        new_h = calculate_h(rx, ry, p1n, p2n, (0, 0), p4n)
+        self.declare(StateNode(node_id=next_id, parent_id=nid, robot_x=rx, robot_y=ry, target_x=3, target_y=2, carried_pavilion_id=0, carried_pavilion_name="", carried_load=(), p1_needs=p1n, p2_needs=p2n, p3_needs=(0, 0), p4_needs=p4n, g=g + 1, h=new_h, f=(g + 1) + new_h, action=f"Unload Orchid Batch at {name3}", status="open", printed=False))
+        self.modify(counter, next_id=next_id + 1)
+        self.modify(node, status="closed")
+
+    @Rule(
+        AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=4, carried_load=MATCH.load),
+        Pavilion(pavilion_id=4, x=MATCH.px, y=MATCH.py, name=MATCH.name4),
+        TEST(lambda rx, ry, px, py: rx == px and ry == py),
+        TEST(lambda load: carried_total(load) > 0),
+        AS.counter << NodeCounter(next_id=MATCH.next_id),
+        salience=260,
+    )
+    def unload_pavilion_4(self, node, nid, g, rx, ry, tx, ty, p1n, p2n, p3n, p4n, name4, counter, next_id):
+        new_h = calculate_h(rx, ry, p1n, p2n, p3n, (0, 0))
+        self.declare(StateNode(node_id=next_id, parent_id=nid, robot_x=rx, robot_y=ry, target_x=3, target_y=2, carried_pavilion_id=0, carried_pavilion_name="", carried_load=(), p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=(0, 0), g=g + 1, h=new_h, f=(g + 1) + new_h, action=f"Unload Goliat Rose Batch at {name4}", status="open", printed=False))
+        self.modify(counter, next_id=next_id + 1)
+        self.modify(node, status="closed")
+
+    @Rule(
+        AS.node << StateNode(status="active", node_id=MATCH.nid, robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n),
+        GridConfig(max_x=MATCH.max_x, max_y=MATCH.max_y),
+        TEST(lambda rx, ry, max_x, max_y: has_invalid_coordinates(rx, ry, max_x, max_y)),
+        salience=250,
+    )
+    def prune_invalid_coordinates(self, node, nid):
+        print(f"[Prune] Invalid coordinates removed: node {nid}")
+        self.retract(node)
+
+    @Rule(
+        AS.node << StateNode(status="active", node_id=MATCH.nid, carried_pavilion_id=MATCH.cpid, carried_load=MATCH.load, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n),
+        TEST(lambda cpid, load, p1n, p2n, p3n, p4n: (cpid == 0 and carried_total(load) != 0) or (cpid != 0 and carried_total(load) == 0) or (all_needs_zero(p1n, p2n, p3n, p4n) and carried_total(load) != 0)),
+        salience=245,
+    )
+    def prune_invalid_load(self, node, nid):
+        print(f"[Prune] Invalid load removed: node {nid}")
+        self.retract(node)
+
     @Rule(
         AS.node << StateNode(status="active"),
-        salience=10
+        salience=50,
     )
     def close_node(self, node):
         self.modify(node, status="closed")
 
-    # ==========================================
-    # 7. قواعد الطباعة التراجعية العكسية
-    # ==========================================
     @Rule(
         AS.path << SolutionPath(current_node_id=MATCH.nid),
-        StateNode(node_id=MATCH.nid, parent_id=MATCH.pid & TEST(lambda pid: pid != -1), action=MATCH.act),
-        salience=500
+        StateNode(node_id=MATCH.nid, parent_id=MATCH.pid, action=MATCH.act),
+        TEST(lambda pid: pid != -1),
+        salience=700,
     )
     def print_path_step(self, path, pid, act):
-        print(f"👉 [Step] Action executed: {act}")
+        print(f"[Path] {act}")
         self.declare(SolutionPath(current_node_id=pid))
         self.retract(path)
 
     @Rule(
         AS.path << SolutionPath(current_node_id=MATCH.nid),
         StateNode(node_id=MATCH.nid, parent_id=-1, action=MATCH.act),
-        salience=500
+        salience=700,
     )
     def print_path_start(self, path, act):
-        print(f"🏁 [Start State]: {act}")
-        print("\n==============================================")
-        print("🎯 Done! Optimal Path Printed Completely with 0 Loops!")
+        print(f"[Path] Start -> {act}")
+        print("==============================================")
+        print("Solution path printed successfully.")
         print("==============================================")
         self.retract(path)
         self.halt()
+
+    def _carried_name(self, pavilion_id):
+        names = {0: "", 1: "Rose", 2: "Tulip", 3: "Orchid", 4: "Goliat Rose"}
+        return names[pavilion_id]
