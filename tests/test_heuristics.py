@@ -4,14 +4,14 @@ from heuristics import calculate_h, best_pavilion_id, carried_total, has_invalid
 
 
 def test_calculate_h_basic():
-    # robot at (1,3), each pavilion needs 1 bouquet
+    # robot at (1,3), each pavilion needs 1 bouquet on the updated default board
     h = calculate_h(1, 3, (1,), (1,), (1,), (1,))
-    assert h == 6
+    assert h == 7
 
 
 def test_best_pavilion_and_carried_total():
     bid = best_pavilion_id(1, 3, (1,), (1,), (1,), (1,))
-    assert bid == 1
+    assert bid == 2
     assert carried_total(()) == 0
     assert carried_total((2, 1)) == 3
 

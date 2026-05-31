@@ -15,17 +15,17 @@ class SmartFlowerEngine(KnowledgeEngine):
         # Explicit initial facts (no loops/conditionals)
         # Grid and static positions (as per assignment)
         yield GridConfig(max_x=5, max_y=5, warehouse_x=3, warehouse_y=2)
-        # Pavilions: normalize all `needs` tuples to length 3 (pad with zeros)
-        # Pavilion 1 (Rose) at (2,4): [2,1,1]
-        yield Pavilion(pavilion_id=1, name="Rose", x=2, y=4, needs=(2, 1, 1))
-        # Pavilion 2 (Tulip) at (4,3): pad to length 3 -> (3,1,0)
-        yield Pavilion(pavilion_id=2, name="Tulip", x=4, y=3, needs=(3, 1, 0))
-        # Pavilion 3 (Orchid) at (4,5): pad to length 3 -> (2,1,0)
-        yield Pavilion(pavilion_id=3, name="Orchid", x=4, y=5, needs=(2, 1, 0))
-        # Pavilion 4 (Goliat Rose) at (5,2): pad to length 3 -> (2,2,0)
-        yield Pavilion(pavilion_id=4, name="Goliat Rose", x=5, y=2, needs=(2, 2, 0))
+        # Pavilions: default board matches the provided assignment sheet
+        # Pavilion 1 (Rose) at (4,2): Red=2, Pink=1, White=1
+        yield Pavilion(pavilion_id=1, name="Rose", x=4, y=2, needs=(2, 1, 1))
+        # Pavilion 2 (Tulip) at (3,4): Red=3, Yellow=1
+        yield Pavilion(pavilion_id=2, name="Tulip", x=3, y=4, needs=(3, 1, 0))
+        # Pavilion 3 (Orchid) at (5,4): Purple=2, Pink=1
+        yield Pavilion(pavilion_id=3, name="Orchid", x=5, y=4, needs=(2, 1, 0))
+        # Pavilion 4 (Goliat Rose) at (2,5): Gold=2, Light Pink=2
+        yield Pavilion(pavilion_id=4, name="Goliat Rose", x=2, y=5, needs=(2, 2, 0))
         yield NodeCounter(next_id=1)
-        # Initial robot position and pavilion needs (match assignment)
+        # Initial robot position and pavilion needs (match assignment sheet)
         start_x = 1
         start_y = 3
         p1_needs = (2, 1, 1)
@@ -68,6 +68,9 @@ class SmartFlowerEngine(KnowledgeEngine):
             robot_y=MATCH.ry,
             target_x=MATCH.tx,
             target_y=MATCH.ty,
+            g=MATCH.g,
+            h=MATCH.h,
+            f=MATCH.f,
             carried_pavilion_id=MATCH.cpid,
             carried_load=(),
             p1_needs=(0, 0, 0),
@@ -75,11 +78,25 @@ class SmartFlowerEngine(KnowledgeEngine):
             p3_needs=(0, 0, 0),
             p4_needs=(0, 0, 0),
         ),
+        AS.counter << NodeCounter(next_id=MATCH.next_id),
         salience=500,
     )
-    def goal_reached(self, node, nid, rx, ry, tx, ty, cpid):
+    def goal_reached(self, node, counter, nid, rx, ry, tx, ty, g, h, f, cpid, next_id):
+        steps = g
+        generated_nodes = next_id - 1
         print("\n==============================================")
+        print("Solution Report")
+        print("==============================================")
         print("Success: all pavilion demands were satisfied.")
+        print("Goal status: all pavilion demands were satisfied.")
+        print("Overview:")
+        print(f"- Steps: {steps}")
+        print(f"- Cost: {g}")
+        print(f"- Generated nodes: {generated_nodes}")
+        print(f"- Final robot position: ({rx},{ry})")
+        print(f"- Warehouse / target position: ({tx},{ty})")
+        print(f"- Final carried load: pavilion_id={cpid}")
+        print("- End state: all pavilion needs are zero and the robot is empty.")
         print("==============================================\n")
         self.declare(SolutionPath(current_node_id=nid))
         self.modify(node, status="closed", carried_pavilion_id=cpid, robot_x=rx, robot_y=ry, target_x=tx, target_y=ty)
@@ -260,7 +277,6 @@ class SmartFlowerEngine(KnowledgeEngine):
         salience=260,
     )
     def unload_pavilion_1(self, node, nid, g, rx, ry, tx, ty, p1n, p2n, p3n, p4n, load, name1, counter, next_id):
-        # compute element-wise subtraction without for/while/if
         new_p1 = tuple(map(lambda ab: max(ab[0] - ab[1], 0), zip(p1n, load)))
         new_h = calculate_h(rx, ry, new_p1, p2n, p3n, p4n)
         self.declare(StateNode(node_id=next_id, parent_id=nid, robot_x=rx, robot_y=ry, target_x=3, target_y=2, carried_pavilion_id=0, carried_pavilion_name="", carried_load=(), p1_needs=new_p1, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n, g=g + 1, h=new_h, f=(g + 1) + new_h, action=f"Unload Rose Batch at {name1}", status="open", printed=False))
@@ -345,6 +361,24 @@ class SmartFlowerEngine(KnowledgeEngine):
         salience=700,
     )
     def print_path_step(self, path, pid, act):
+        stats = getattr(self, "solution_stats", {})
+        stats["path_steps"] = stats.get("path_steps", 0) + 1
+        stats["moves"] = stats.get("moves", 0) + int(act.startswith("Move"))
+        stats["loads"] = stats.get("loads", 0) + int(act.startswith("Load"))
+        stats["unloads"] = stats.get("unloads", 0) + int(act.startswith("Unload"))
+        stats["move_right"] = stats.get("move_right", 0) + int(act == "Move Right")
+        stats["move_left"] = stats.get("move_left", 0) + int(act == "Move Left")
+        stats["move_up"] = stats.get("move_up", 0) + int(act == "Move Up")
+        stats["move_down"] = stats.get("move_down", 0) + int(act == "Move Down")
+        stats["load_rose"] = stats.get("load_rose", 0) + int(act == "Load Rose Batch")
+        stats["load_tulip"] = stats.get("load_tulip", 0) + int(act == "Load Tulip Batch")
+        stats["load_orchid"] = stats.get("load_orchid", 0) + int(act == "Load Orchid Batch")
+        stats["load_goliat"] = stats.get("load_goliat", 0) + int(act == "Load Goliat Rose Batch")
+        stats["unload_rose"] = stats.get("unload_rose", 0) + int(act == "Unload Rose Batch at Rose")
+        stats["unload_tulip"] = stats.get("unload_tulip", 0) + int(act == "Unload Tulip Batch at Tulip")
+        stats["unload_orchid"] = stats.get("unload_orchid", 0) + int(act == "Unload Orchid Batch at Orchid")
+        stats["unload_goliat"] = stats.get("unload_goliat", 0) + int(act == "Unload Goliat Rose Batch at Goliat Rose")
+        getattr(self, "solution_path_actions", []).append(act)
         print(f"[Path] {act}")
         self.declare(SolutionPath(current_node_id=pid))
         self.retract(path)
@@ -355,7 +389,23 @@ class SmartFlowerEngine(KnowledgeEngine):
         salience=700,
     )
     def print_path_start(self, path, act):
+        stats = getattr(self, "solution_stats", {})
+        print("Path Summary:")
+        print("Action breakdown:")
+        print(f"- Moves: {stats.get('moves', 0)}")
+        print(f"- Loads: {stats.get('loads', 0)}")
+        print(f"- Unloads: {stats.get('unloads', 0)}")
+        print(f"- Pavilions served: {stats.get('unloads', 0)}/4")
+        print(f"- Warehouse trips: {stats.get('loads', 0)}")
+        print(f"- Right/Left/Up/Down: {stats.get('move_right', 0)}/{stats.get('move_left', 0)}/{stats.get('move_up', 0)}/{stats.get('move_down', 0)}")
+        print(f"- Rose/Tulip/Orchid/Goliat loads: {stats.get('load_rose', 0)}/{stats.get('load_tulip', 0)}/{stats.get('load_orchid', 0)}/{stats.get('load_goliat', 0)}")
+        print(f"- Rose/Tulip/Orchid/Goliat unloads: {stats.get('unload_rose', 0)}/{stats.get('unload_tulip', 0)}/{stats.get('unload_orchid', 0)}/{stats.get('unload_goliat', 0)}")
         print(f"[Path] Start -> {act}")
+        print("Numbered solution path:")
+        solution_path_actions = list(reversed(getattr(self, "solution_path_actions", [])))
+        numbered_path = "\n".join(map(lambda pair: f"{pair[0]:02d}. {pair[1]}", enumerate(solution_path_actions, start=1)))
+        print(numbered_path)
+        print(f"Total solution cost: {stats.get('path_steps', 0)}")
         print("==============================================")
         print("Solution path printed successfully.")
         print("==============================================")

@@ -3,9 +3,9 @@
   "warehouse": { "x": 3, "y": 2 },
   "robot_start": { "x": 1, "y": 3 },
   "pavilions": [
-    { "id": 1, "name": "Rose", "x": 2, "y": 1, "need": 1 },
-    { "id": 2, "name": "Tulip", "x": 4, "y": 3, "need": 1 },
-    { "id": 3, "name": "Orchid", "x": 1, "y": 4, "need": 1 },
-    { "id": 4, "name": "Goliat Rose", "x": 0, "y": 2, "need": 1 }
+    { "id": 1, "name": "Rose", "x": 4, "y": 2, "need": [2, 1, 1] },
+    { "id": 2, "name": "Tulip", "x": 3, "y": 4, "need": [3, 1, 0] },
+    { "id": 3, "name": "Orchid", "x": 5, "y": 4, "need": [2, 1, 0] },
+    { "id": 4, "name": "Goliat Rose", "x": 2, "y": 5, "need": [2, 2, 0] }
   ]
 }
