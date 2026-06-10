@@ -5,13 +5,19 @@ collections.Mapping = collections.abc.Mapping
 
 from experta import AS, KnowledgeEngine, MATCH, NOT, Rule, TEST, DefFacts
 
-from facts import ClosedState, GridConfig, NodeCounter, Pavilion, PossibleMixedLoad, SolutionPath, StateNode, MaxLoad
+from facts import ClosedState, GridConfig, NodeCounter, Pavilion, PossibleMixedLoad, SearchMode, SolutionPath, StateNode, MaxLoad
 from heuristics import all_needs_zero, best_pavilion_id, calculate_h, carried_total, has_invalid_coordinates
 
 
 class SmartFlowerEngine(KnowledgeEngine):
+    def __init__(self, mode="astar"):
+        super().__init__()
+        self.search_mode = mode
+
     @DefFacts()
     def _initial_facts(self):
+        yield SearchMode(mode=self.search_mode)
+
         yield GridConfig(max_x=5, max_y=5, warehouse_x=2, warehouse_y=3)
         yield Pavilion(pavilion_id=1, name="Rose", x=4, y=2, needs=(2, 1, 1))
         yield Pavilion(pavilion_id=2, name="Tulip", x=3, y=4, needs=(3, 1, 0))
@@ -59,7 +65,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.declare(StateNode(
             node_id=next_id, parent_id=nid,
             robot_x=rx, robot_y=ry,
-            target_x=2, target_y=3, 
+            target_x=2, target_y=3,
             carried_pavilion_id=0, carried_pavilion_name="Mixed",
             carried_load=load,
             p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n,
@@ -153,6 +159,7 @@ class SmartFlowerEngine(KnowledgeEngine):
             p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n,
         ),
         NOT(StateNode(status="open", f=MATCH.f2 & TEST(lambda f1, f2: f2 < f1))),
+        SearchMode(mode="astar"),
         salience=400,
     )
     def activate_best_node(self, node, rx, ry, tx, ty, cpid, p1n, p2n, p3n, p4n):
@@ -162,7 +169,25 @@ class SmartFlowerEngine(KnowledgeEngine):
             print(f"[Activate] node={nid} f={fval} pos=({rx},{ry}) target=({tx},{ty}) carry={cpid}")
         except Exception:
             pass
-        self.declare(ClosedState(robot_x=rx, robot_y=ry, target_x=tx, target_y=ty, carried_pavilion_id=cpid, p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n))
+        self.declare(ClosedState(robot_x=rx, robot_y=ry, target_x=tx, target_y=ty, carried_pavilion_id=cpid,
+                                 p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n))
+        self.modify(node, status="active")
+
+    @Rule(
+        AS.node << StateNode(status="open", node_id=MATCH.nid, robot_x=MATCH.rx, robot_y=MATCH.ry,
+                             target_x=MATCH.tx, target_y=MATCH.ty, carried_pavilion_id=MATCH.cpid,
+                             p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n),
+        SearchMode(mode="dfs"),
+        salience=390,
+    )
+    def activate_any_open_node(self, node, nid, rx, ry, tx, ty, cpid, p1n, p2n, p3n, p4n):
+        try:
+            print(f"[DFS Activate] node={nid}")
+        except Exception:
+            pass
+        # إضافة ClosedState لمنع إعادة تفعيل نفس العقدة (اختياري لكن مفيد)
+        self.declare(ClosedState(robot_x=rx, robot_y=ry, target_x=tx, target_y=ty, carried_pavilion_id=cpid,
+                                 p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n))
         self.modify(node, status="active")
 
     @Rule(
@@ -173,6 +198,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         print(f"[Tree] id={nid} parent={pid} pos=({rx},{ry}) target=({tx},{ty}) g={g} h={h} f={f} action={action} carry={cname}")
         self.modify(node, printed=True)
 
+    # قواعد الحركة
     @Rule(
         AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=MATCH.cpid, carried_load=MATCH.load),
         GridConfig(max_x=MATCH.max_x),
@@ -231,6 +257,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.modify(counter, next_id=next_id+1)
         self.modify(node, status="closed")
 
+    # قواعد التحميل المتجانسة
     @Rule(
         AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=0, carried_load=()),
         GridConfig(warehouse_x=MATCH.wx, warehouse_y=MATCH.wy),
@@ -303,6 +330,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.modify(counter, next_id=next_id+1)
         self.modify(node, status="closed")
 
+    # قواعد التفريغ المتجانسة
     @Rule(
         AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=1, carried_load=MATCH.load),
         Pavilion(pavilion_id=1, x=MATCH.px, y=MATCH.py, name=MATCH.name1),
@@ -363,6 +391,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.modify(counter, next_id=next_id+1)
         self.modify(node, status="closed")
 
+    # قواعد المنع والإغلاق
     @Rule(
         AS.node << StateNode(status="active", node_id=MATCH.nid, robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n),
         GridConfig(max_x=MATCH.max_x, max_y=MATCH.max_y),
@@ -389,6 +418,7 @@ class SmartFlowerEngine(KnowledgeEngine):
     def close_node(self, node):
         self.modify(node, status="closed")
 
+    # طباعة المسار
     @Rule(
         AS.path << SolutionPath(current_node_id=MATCH.nid),
         StateNode(node_id=MATCH.nid, parent_id=MATCH.pid, action=MATCH.act),

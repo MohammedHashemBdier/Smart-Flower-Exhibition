@@ -3,7 +3,7 @@
 ## 📊 Project Information
 
 - **Project Name**: `smart_flower_exhibition`
-- **Generated On**: 2026-06-10 10:54:30 (Asia/Damascus / GMT+03:00)
+- **Generated On**: 2026-06-10 12:18:56 (Asia/Damascus / GMT+03:00)
 - **Total Files Processed**: 2707
 - **Export Tool**: Easy Whole Project to Single Text File for LLMs v1.1.0
 - **Tool Author**: Jota / José Guilherme Pandolfi
@@ -21,10 +21,10 @@
 
 ```
 ├── 📁 __pycache__/
-│   ├── 📄 facts.cpython-313.pyc (4 KB)
-│   ├── 📄 heuristics.cpython-313.pyc (8.7 KB)
+│   ├── 📄 facts.cpython-313.pyc (3.53 KB)
+│   ├── 📄 heuristics.cpython-313.pyc (8 KB)
 │   ├── 📄 initial_facts.cpython-313.pyc (1.83 KB)
-│   └── 📄 rules.cpython-313.pyc (48.74 KB)
+│   └── 📄 rules.cpython-313.pyc (50.04 KB)
 ├── 📁 doc/
 │   ├── 📄 play.txt (316 B)
 │   └── 📄 وظيفة نظم قواعد المعرفة.pdf (410.3 KB)
@@ -2968,14 +2968,14 @@
 │   │   ├── 📄 python.exe (249.34 KB)
 │   │   └── 📄 pythonw.exe (245.84 KB)
 │   └── 📄 pyvenv.cfg (279 B)
-├── 📄 facts.py (1.97 KB)
+├── 📄 facts.py (2.01 KB)
 ├── 📄 game_config.json (428 B)
 ├── 📄 heuristics.py (5.95 KB)
 ├── 📄 initial_facts.py (1.35 KB)
-├── 📄 main.py (1.07 KB)
+├── 📄 main.py (1 KB)
 ├── 📄 README.md (3.19 KB)
 ├── 📄 requirements.txt (252 B)
-└── 📄 rules.py (29.21 KB)
+└── 📄 rules.py (30.57 KB)
 ```
 
 ## 📑 Table of Contents
@@ -566145,15 +566145,15 @@ command = C:\Program Files\Python313\python.exe -m venv C:\Users\mhb20\OneDrive\
 ### <a id="📄-facts-py"></a>📄 `facts.py`
 
 **File Info:**
-- **Size**: 1.97 KB
+- **Size**: 2.01 KB
 - **Extension**: `.py`
 - **Language**: `python`
 - **Location**: `facts.py`
 - **Relative Path**: `root`
 - **Created**: 2026-05-29 12:50:50 (Asia/Damascus / GMT+03:00)
-- **Modified**: 2026-06-10 10:29:52 (Asia/Damascus / GMT+03:00)
-- **MD5**: `6dba9575b0536f792a1cd8eca035a199`
-- **SHA256**: `d5c547bf536de6e2a714f77bb907b7a3147b9b9374f636bd13af94e7a87420c9`
+- **Modified**: 2026-06-10 12:09:54 (Asia/Damascus / GMT+03:00)
+- **MD5**: `dc73bb426edb1d5cf17b75ff1934b5d9`
+- **SHA256**: `f7a3bdbef4ac24b1d4dd170342e86ced4b8bad79cf1d328940295dee7ca8de54`
 - **Encoding**: ASCII
 
 **File code content:**
@@ -566161,26 +566161,20 @@ command = C:\Program Files\Python313\python.exe -m venv C:\Users\mhb20\OneDrive\
 ```python
 from experta import Fact, Field
 
-
 class GridConfig(Fact):
-
     max_x = Field(int, mandatory=True)
     max_y = Field(int, mandatory=True)
     warehouse_x = Field(int, mandatory=True)
     warehouse_y = Field(int, mandatory=True)
 
-
 class Pavilion(Fact):
-
     pavilion_id = Field(int, mandatory=True)
     name = Field(str, mandatory=True)
     x = Field(int, mandatory=True)
     y = Field(int, mandatory=True)
     needs = Field(tuple, mandatory=True)
 
-
 class StateNode(Fact):
-
     node_id = Field(int, mandatory=True)
     parent_id = Field(int, default=-1)
     robot_x = Field(int, mandatory=True)
@@ -566201,14 +566195,10 @@ class StateNode(Fact):
     status = Field(str, default="open")
     printed = Field(bool, default=False)
 
-
 class NodeCounter(Fact):
-
     next_id = Field(int, default=1)
 
-
 class ClosedState(Fact):
-
     robot_x = Field(int, mandatory=True)
     robot_y = Field(int, mandatory=True)
     target_x = Field(int, mandatory=True)
@@ -566219,18 +566209,17 @@ class ClosedState(Fact):
     p3_needs = Field(tuple, mandatory=True)
     p4_needs = Field(tuple, mandatory=True)
 
-
 class SolutionPath(Fact):
-
     current_node_id = Field(int, mandatory=True)
 
-
 class MaxLoad(Fact):
-
     value = Field(int, mandatory=True)
 
 class PossibleMixedLoad(Fact):
     load = Field(tuple, mandatory=True)
+
+class SearchMode(Fact):
+    mode = Field(str, mandatory=True)
 ```
 
 ---
@@ -566537,16 +566526,16 @@ def declare_initial(engine):
 ### <a id="📄-main-py"></a>📄 `main.py`
 
 **File Info:**
-- **Size**: 1.07 KB
+- **Size**: 1 KB
 - **Extension**: `.py`
 - **Language**: `python`
 - **Location**: `main.py`
 - **Relative Path**: `root`
 - **Created**: 2026-05-29 14:06:18 (Asia/Damascus / GMT+03:00)
-- **Modified**: 2026-05-31 07:29:15 (Asia/Damascus / GMT+03:00)
-- **MD5**: `81bec441561b7accfba8b9d1d0739469`
-- **SHA256**: `4ce94918da004e5a7ed35ee947b11bd336df9c0c478929e7f9a0a5db6dbf8318`
-- **Encoding**: ASCII
+- **Modified**: 2026-06-10 12:13:28 (Asia/Damascus / GMT+03:00)
+- **MD5**: `b43db1cb4dc88d7713a8f34b20c38143`
+- **SHA256**: `f83d6ae7e38187e1ff5169412a5e48a618c9df91a70a485c4e210e827b88885b`
+- **Encoding**: UTF-8
 
 **File code content:**
 
@@ -566559,44 +566548,29 @@ collections.Mapping = collections.abc.Mapping
 
 from rules import SmartFlowerEngine
 
-
-def run_project():
-    engine = SmartFlowerEngine()
+def run_project(mode):
+    print(f"\n{'='*50}")
+    print(f"Running with mode: {mode.upper()}")
+    print('='*50)
+    
+    engine = SmartFlowerEngine(mode=mode)   # تغيير strategy إلى mode
     engine.solution_stats = {
-        "path_steps": 0,
-        "moves": 0,
-        "loads": 0,
-        "unloads": 0,
-        "move_right": 0,
-        "move_left": 0,
-        "move_up": 0,
-        "move_down": 0,
-        "load_rose": 0,
-        "load_tulip": 0,
-        "load_orchid": 0,
-        "load_goliat": 0,
-        "unload_rose": 0,
-        "unload_tulip": 0,
-        "unload_orchid": 0,
-        "unload_goliat": 0,
+        "path_steps": 0, "moves": 0, "loads": 0, "unloads": 0,
+        "move_right": 0, "move_left": 0, "move_up": 0, "move_down": 0,
+        "load_rose": 0, "load_tulip": 0, "load_orchid": 0, "load_goliat": 0,
+        "unload_rose": 0, "unload_tulip": 0, "unload_orchid": 0, "unload_goliat": 0,
     }
     engine.solution_path_actions = []
-    engine.reset()  # DefFacts will seed initial facts
+    engine.reset()
 
     start_time = time.perf_counter()
-
-    print("Smart Flower Exhibition Knowledge-Based System")
-    print("----------------------------------------------")
-
-    print("A* search started.")
     engine.run()
+    elapsed = time.perf_counter() - start_time
+    print(f"Execution time: {elapsed:.6f} seconds\n")
 
-    elapsed_seconds = time.perf_counter() - start_time
-    print(f"Execution time: {elapsed_seconds:.6f} seconds")
-
-
-run_project()
-
+if __name__ == "__main__":
+    run_project("dfs")     # Depth-First Search
+    run_project("astar")   # A* Search
 ```
 
 ---
@@ -566721,15 +566695,15 @@ reportlab
 ### <a id="📄-rules-py"></a>📄 `rules.py`
 
 **File Info:**
-- **Size**: 29.21 KB
+- **Size**: 30.57 KB
 - **Extension**: `.py`
 - **Language**: `python`
 - **Location**: `rules.py`
 - **Relative Path**: `root`
 - **Created**: 2026-05-29 14:13:59 (Asia/Damascus / GMT+03:00)
-- **Modified**: 2026-06-10 10:26:29 (Asia/Damascus / GMT+03:00)
-- **MD5**: `9599e02c36c7cb4d290663f27cfc567f`
-- **SHA256**: `2a96b65a39ad3b6dd15f87b6ba13cc5d6a758b0d3a176befd96344194e72e4e2`
+- **Modified**: 2026-06-10 12:18:51 (Asia/Damascus / GMT+03:00)
+- **MD5**: `053a1c165fc6499b815d52fa9bf6b022`
+- **SHA256**: `dd89f78f61b02925c1e0da5cb430e907f1ff2cbfda0393e1e6d58735f4c66112`
 - **Encoding**: ASCII
 
 **File code content:**
@@ -566742,13 +566716,19 @@ collections.Mapping = collections.abc.Mapping
 
 from experta import AS, KnowledgeEngine, MATCH, NOT, Rule, TEST, DefFacts
 
-from facts import ClosedState, GridConfig, NodeCounter, Pavilion, PossibleMixedLoad, SolutionPath, StateNode, MaxLoad
+from facts import ClosedState, GridConfig, NodeCounter, Pavilion, PossibleMixedLoad, SearchMode, SolutionPath, StateNode, MaxLoad
 from heuristics import all_needs_zero, best_pavilion_id, calculate_h, carried_total, has_invalid_coordinates
 
 
 class SmartFlowerEngine(KnowledgeEngine):
+    def __init__(self, mode="astar"):
+        super().__init__()
+        self.search_mode = mode
+
     @DefFacts()
     def _initial_facts(self):
+        yield SearchMode(mode=self.search_mode)
+
         yield GridConfig(max_x=5, max_y=5, warehouse_x=2, warehouse_y=3)
         yield Pavilion(pavilion_id=1, name="Rose", x=4, y=2, needs=(2, 1, 1))
         yield Pavilion(pavilion_id=2, name="Tulip", x=3, y=4, needs=(3, 1, 0))
@@ -566796,7 +566776,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.declare(StateNode(
             node_id=next_id, parent_id=nid,
             robot_x=rx, robot_y=ry,
-            target_x=2, target_y=3, 
+            target_x=2, target_y=3,
             carried_pavilion_id=0, carried_pavilion_name="Mixed",
             carried_load=load,
             p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n,
@@ -566890,6 +566870,7 @@ class SmartFlowerEngine(KnowledgeEngine):
             p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n,
         ),
         NOT(StateNode(status="open", f=MATCH.f2 & TEST(lambda f1, f2: f2 < f1))),
+        SearchMode(mode="astar"),
         salience=400,
     )
     def activate_best_node(self, node, rx, ry, tx, ty, cpid, p1n, p2n, p3n, p4n):
@@ -566899,7 +566880,25 @@ class SmartFlowerEngine(KnowledgeEngine):
             print(f"[Activate] node={nid} f={fval} pos=({rx},{ry}) target=({tx},{ty}) carry={cpid}")
         except Exception:
             pass
-        self.declare(ClosedState(robot_x=rx, robot_y=ry, target_x=tx, target_y=ty, carried_pavilion_id=cpid, p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n))
+        self.declare(ClosedState(robot_x=rx, robot_y=ry, target_x=tx, target_y=ty, carried_pavilion_id=cpid,
+                                 p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n))
+        self.modify(node, status="active")
+
+    @Rule(
+        AS.node << StateNode(status="open", node_id=MATCH.nid, robot_x=MATCH.rx, robot_y=MATCH.ry,
+                             target_x=MATCH.tx, target_y=MATCH.ty, carried_pavilion_id=MATCH.cpid,
+                             p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n),
+        SearchMode(mode="dfs"),
+        salience=390,
+    )
+    def activate_any_open_node(self, node, nid, rx, ry, tx, ty, cpid, p1n, p2n, p3n, p4n):
+        try:
+            print(f"[DFS Activate] node={nid}")
+        except Exception:
+            pass
+        # إضافة ClosedState لمنع إعادة تفعيل نفس العقدة (اختياري لكن مفيد)
+        self.declare(ClosedState(robot_x=rx, robot_y=ry, target_x=tx, target_y=ty, carried_pavilion_id=cpid,
+                                 p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n))
         self.modify(node, status="active")
 
     @Rule(
@@ -566910,6 +566909,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         print(f"[Tree] id={nid} parent={pid} pos=({rx},{ry}) target=({tx},{ty}) g={g} h={h} f={f} action={action} carry={cname}")
         self.modify(node, printed=True)
 
+    # قواعد الحركة
     @Rule(
         AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=MATCH.cpid, carried_load=MATCH.load),
         GridConfig(max_x=MATCH.max_x),
@@ -566968,6 +566968,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.modify(counter, next_id=next_id+1)
         self.modify(node, status="closed")
 
+    # قواعد التحميل المتجانسة
     @Rule(
         AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=0, carried_load=()),
         GridConfig(warehouse_x=MATCH.wx, warehouse_y=MATCH.wy),
@@ -567040,6 +567041,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.modify(counter, next_id=next_id+1)
         self.modify(node, status="closed")
 
+    # قواعد التفريغ المتجانسة
     @Rule(
         AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=1, carried_load=MATCH.load),
         Pavilion(pavilion_id=1, x=MATCH.px, y=MATCH.py, name=MATCH.name1),
@@ -567100,6 +567102,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.modify(counter, next_id=next_id+1)
         self.modify(node, status="closed")
 
+    # قواعد المنع والإغلاق
     @Rule(
         AS.node << StateNode(status="active", node_id=MATCH.nid, robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n),
         GridConfig(max_x=MATCH.max_x, max_y=MATCH.max_y),
@@ -567126,6 +567129,7 @@ class SmartFlowerEngine(KnowledgeEngine):
     def close_node(self, node):
         self.modify(node, status="closed")
 
+    # طباعة المسار
     @Rule(
         AS.path << SolutionPath(current_node_id=MATCH.nid),
         StateNode(node_id=MATCH.nid, parent_id=MATCH.pid, action=MATCH.act),
