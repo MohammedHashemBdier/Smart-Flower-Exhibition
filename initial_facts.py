@@ -1,9 +1,8 @@
-from facts import GridConfig, Pavilion, NodeCounter, PossibleMixedLoad, StateNode
+from facts import GridConfig, Pavilion, NodeCounter, StateNode
 from heuristics import calculate_h
 
-
 def declare_initial(engine):
-    engine.declare(GridConfig(max_x=5, max_y=5, warehouse_x=3, warehouse_y=2))
+    engine.declare(GridConfig(max_x=5, max_y=5, warehouse_x=2, warehouse_y=3))
 
     engine.declare(Pavilion(pavilion_id=1, name="Rose", x=4, y=2, needs=(2, 1, 1)))
     engine.declare(Pavilion(pavilion_id=2, name="Tulip", x=3, y=4, needs=(3, 1, 0)))
@@ -11,9 +10,6 @@ def declare_initial(engine):
     engine.declare(Pavilion(pavilion_id=4, name="Goliat Rose", x=2, y=5, needs=(2, 2, 0)))
 
     engine.declare(NodeCounter(next_id=1))
-    from heuristics import ALL_SAME_COLOR_LOADS
-    for load in ALL_SAME_COLOR_LOADS:
-        engine.declare(PossibleMixedLoad(load=load))
 
     start_x = 1
     start_y = 3
@@ -30,8 +26,8 @@ def declare_initial(engine):
         parent_id=-1,
         robot_x=start_x,
         robot_y=start_y,
-        target_x=3,
-        target_y=2,
+        target_x=2,
+        target_y=3,
         carried_pavilion_id=0,
         carried_pavilion_name="",
         carried_load=(),
