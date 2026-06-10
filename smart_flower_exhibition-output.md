@@ -3,7 +3,7 @@
 ## 📊 Project Information
 
 - **Project Name**: `smart_flower_exhibition`
-- **Generated On**: 2026-06-10 08:51:16 (Asia/Damascus / GMT+03:00)
+- **Generated On**: 2026-06-10 10:54:30 (Asia/Damascus / GMT+03:00)
 - **Total Files Processed**: 2707
 - **Export Tool**: Easy Whole Project to Single Text File for LLMs v1.1.0
 - **Tool Author**: Jota / José Guilherme Pandolfi
@@ -2968,14 +2968,14 @@
 │   │   ├── 📄 python.exe (249.34 KB)
 │   │   └── 📄 pythonw.exe (245.84 KB)
 │   └── 📄 pyvenv.cfg (279 B)
-├── 📄 facts.py (2.63 KB)
+├── 📄 facts.py (1.97 KB)
 ├── 📄 game_config.json (428 B)
-├── 📄 heuristics.py (8.99 KB)
+├── 📄 heuristics.py (5.95 KB)
 ├── 📄 initial_facts.py (1.35 KB)
 ├── 📄 main.py (1.07 KB)
 ├── 📄 README.md (3.19 KB)
 ├── 📄 requirements.txt (252 B)
-└── 📄 rules.py (29.72 KB)
+└── 📄 rules.py (29.21 KB)
 ```
 
 ## 📑 Table of Contents
@@ -566145,16 +566145,16 @@ command = C:\Program Files\Python313\python.exe -m venv C:\Users\mhb20\OneDrive\
 ### <a id="📄-facts-py"></a>📄 `facts.py`
 
 **File Info:**
-- **Size**: 2.63 KB
+- **Size**: 1.97 KB
 - **Extension**: `.py`
 - **Language**: `python`
 - **Location**: `facts.py`
 - **Relative Path**: `root`
 - **Created**: 2026-05-29 12:50:50 (Asia/Damascus / GMT+03:00)
-- **Modified**: 2026-06-10 08:21:49 (Asia/Damascus / GMT+03:00)
-- **MD5**: `5539dae48b64e6c38e812af3b64f6831`
-- **SHA256**: `aeef522dd16e037ab0ed604c26bf59f485ea894354c9b1b421e325f326a4929c`
-- **Encoding**: UTF-8
+- **Modified**: 2026-06-10 10:29:52 (Asia/Damascus / GMT+03:00)
+- **MD5**: `6dba9575b0536f792a1cd8eca035a199`
+- **SHA256**: `d5c547bf536de6e2a714f77bb907b7a3147b9b9374f636bd13af94e7a87420c9`
+- **Encoding**: ASCII
 
 **File code content:**
 
@@ -566163,7 +566163,6 @@ from experta import Fact, Field
 
 
 class GridConfig(Fact):
-    """إعدادات شبكة المعرض وحدود الحركة."""
 
     max_x = Field(int, mandatory=True)
     max_y = Field(int, mandatory=True)
@@ -566172,7 +566171,6 @@ class GridConfig(Fact):
 
 
 class Pavilion(Fact):
-    """وصف جناح واحد داخل المعرض."""
 
     pavilion_id = Field(int, mandatory=True)
     name = Field(str, mandatory=True)
@@ -566182,7 +566180,6 @@ class Pavilion(Fact):
 
 
 class StateNode(Fact):
-    """عقدة في شجرة البحث تمثل حالة الروبوت والمستودع والأجنحة."""
 
     node_id = Field(int, mandatory=True)
     parent_id = Field(int, default=-1)
@@ -566206,13 +566203,11 @@ class StateNode(Fact):
 
 
 class NodeCounter(Fact):
-    """عداد متسلسل لمعرفات العقد الجديدة."""
 
     next_id = Field(int, default=1)
 
 
 class ClosedState(Fact):
-    """حالة مغلقة لمنع تكرار التوسيع."""
 
     robot_x = Field(int, mandatory=True)
     robot_y = Field(int, mandatory=True)
@@ -566226,18 +566221,15 @@ class ClosedState(Fact):
 
 
 class SolutionPath(Fact):
-    """مؤشر لطباعة المسار النهائي بشكل تراجعي."""
 
     current_node_id = Field(int, mandatory=True)
 
 
 class MaxLoad(Fact):
-    """الحمولة القصوى للروبوت (عدد الباقات ككل)."""
 
     value = Field(int, mandatory=True)
 
 class PossibleMixedLoad(Fact):
-    """حمولة مختلطة (نفس اللون، أنواع مختلفة) مسموحة للتحميل."""
     load = Field(tuple, mandatory=True)
 ```
 
@@ -566279,15 +566271,15 @@ class PossibleMixedLoad(Fact):
 ### <a id="📄-heuristics-py"></a>📄 `heuristics.py`
 
 **File Info:**
-- **Size**: 8.99 KB
+- **Size**: 5.95 KB
 - **Extension**: `.py`
 - **Language**: `python`
 - **Location**: `heuristics.py`
 - **Relative Path**: `root`
 - **Created**: 2026-05-29 12:50:58 (Asia/Damascus / GMT+03:00)
-- **Modified**: 2026-06-10 08:20:15 (Asia/Damascus / GMT+03:00)
-- **MD5**: `c939a660ae348735e4d94b5e3cdc778a`
-- **SHA256**: `f0d5dad7eb6e4455a4e5938bd1b21a488edf0a5aa625fa6123286954d1c6b45d`
+- **Modified**: 2026-06-10 10:54:25 (Asia/Damascus / GMT+03:00)
+- **MD5**: `6da71e8372d7ba33f687eb31b88d41f0`
+- **SHA256**: `121cae61a4b2ef1ee83b5a9ae7750c384836d55fe15851992f2556227e506000`
 - **Encoding**: ASCII
 
 **File code content:**
@@ -566319,10 +566311,8 @@ def has_invalid_coordinates(robot_x, robot_y, max_x, max_y):
 def carried_total(carried_load):
     if not carried_load:
         return 0
-    # إذا كان الحمولة مختلطة (قائمة من tuples)
     if isinstance(carried_load[0], tuple):
         return sum(qty for _, _, qty in carried_load)
-    # الحمولة القديمة (tuple بسيط)
     return sum(carried_load)
 
 def best_pavilion_id(robot_x, robot_y, p1_needs, p2_needs, p3_needs, p4_needs):
@@ -566334,11 +566324,9 @@ def best_pavilion_id(robot_x, robot_y, p1_needs, p2_needs, p3_needs, p4_needs):
     ]
     return min(candidates)[1]
 
-# دوال جديدة لدعم الحمولة المختلطة (خالية من الحلقات في القواعد، تستخدم فقط هنا)
 def is_same_color_load(load, max_load):
     if not load:
         return False
-    # load: list of (type_id, color_idx, qty)
     if len(load) == 0:
         return False
     color = load[0][1]
@@ -566361,10 +566349,8 @@ def is_same_type_load(load, max_load):
     return total_qty <= max_load and total_qty > 0
 
 def generate_same_color_loads(max_load):
-    # هذه الدالة تستخدم حلقات لأنها خارج القواعد، وهي مولدة للاحتمالات الثابتة
-    # ولكن نتيجتها تستخدم فقط في قاعدة واحدة عبر TEST، دون حلقات داخل القاعدة.
-    colors = [0,1,2,3,4,5,6]  # 0:أحمر,1:وردي,2:أبيض,3:أصفر,4:أرجواني,5:ذهبي,6:وردي فاتح
-    types = [1,2,3,4]         # 1:Rose,2:Tulip,3:Orchid,4:Goliat
+    colors = [0,1,2,3,4,5,6]
+    types = [1,2,3,4]
     loads = []
     for color in colors:
         for qty in range(1, max_load+1):
@@ -566373,7 +566359,7 @@ def generate_same_color_loads(max_load):
             for t in types:
                 if remaining <= 0:
                     break
-                take = min(remaining, 2)  # حد أقصى 2 من كل نوع لتجنب انفجار الحالات
+                take = min(remaining, 2)
                 if take > 0:
                     comb.append((t, color, take))
                     remaining -= take
@@ -566393,16 +566379,10 @@ def is_valid_mixed_load(load, max_load):
     return False
 
 def deduct_load_from_needs(load, pavilion_needs, pavilion_type):
-    # load: tuple of (type_id, color_idx, qty)
-    # pavilion_needs: tuple of (need_red, need_pink, need_white, need_yellow, need_purple, need_gold, need_lightpink)
-    # نحتاج فقط للألوان المطلوبة حسب نوع الجناح
-    # تبسيطاً: نستخدم فقط الألوان التي تهم الجناح (حسب النوع)
-    # لكن سنقوم بخصم عام:
     needs_list = list(pavilion_needs)
     new_load = []
     for t, col, qty in load:
         if t == pavilion_type:
-            # نفس النوع، يمكن التفريغ
             if col < len(needs_list):
                 taken = min(qty, needs_list[col])
                 needs_list[col] -= taken
@@ -566415,26 +566395,21 @@ def deduct_load_from_needs(load, pavilion_needs, pavilion_type):
     return tuple(new_load), tuple(needs_list)
 
 def pavilion_total(needs):
-    """عدد الباقات المتبقية في مجموعة احتياجات واحدة."""
 
     return sum(needs)
 
 
 def distance_score(robot_x, robot_y, pavilion_x, pavilion_y, needs):
-    """كلفة تقريبية للوصول إلى جناح واحد مع تجاهل الأجنحة المنجزة."""
 
-    # Pavilion with no needs gets a very large score so unfinished pavilions stay preferred.
     return abs(robot_x - pavilion_x) + abs(robot_y - pavilion_y) + (9999 * int(sum(needs) == 0))
 
 
 def min4(first, second, third, fourth):
-    """أصغر قيمة بين أربع قيم من دون حلقات أو شروط إجرائية."""
 
     return min(min(first, second), min(third, fourth))
 
 
 def calculate_h(robot_x, robot_y, p1_needs, p2_needs, p3_needs, p4_needs):
-    """هيورستك بسيط ومبرر: احتياجات متبقية + أقرب جناح غير منجز."""
 
     total_remaining_bouquets = pavilion_total(p1_needs) + pavilion_total(p2_needs) + pavilion_total(p3_needs) + pavilion_total(p4_needs)
     d1 = distance_score(robot_x, robot_y, 4, 2, p1_needs)
@@ -566445,25 +566420,21 @@ def calculate_h(robot_x, robot_y, p1_needs, p2_needs, p3_needs, p4_needs):
 
 
 def all_needs_zero(p1_needs, p2_needs, p3_needs, p4_needs):
-    """التحقق من نهاية البحث."""
 
     return (sum(p1_needs) + sum(p2_needs) + sum(p3_needs) + sum(p4_needs)) == 0
 
 
 def has_invalid_coordinates(robot_x, robot_y, max_x, max_y):
-    """التحقق من خروج الروبوت عن الشبكة."""
 
     return (robot_x < 0) or (robot_y < 0) or (robot_x > max_x) or (robot_y > max_y)
 
 
 def carried_total(carried_load):
-    """عدد الباقات المحمولة حالياً."""
 
     return sum(carried_load) * int(bool(carried_load))
 
 
 def best_pavilion_id(robot_x, robot_y, p1_needs, p2_needs, p3_needs, p4_needs):
-    """اختيار الجناح الأقرب كمرشح أول للتحميل."""
 
     candidates = [
         (distance_score(robot_x, robot_y, 4, 2, p1_needs), 1),
@@ -566474,18 +566445,12 @@ def best_pavilion_id(robot_x, robot_y, p1_needs, p2_needs, p3_needs, p4_needs):
     return min(candidates)[1]
 
 def _generate_all_same_color_loads(max_load):
-    # هذه الدالة تستخدم حلقات ولكنها تُستدعى مرة واحدة فقط عند تحميل الملف
-    # النتيجة هي قائمة ثابتة من الحمولات الممكنة
-    colors = range(7)  # 0:أحمر,1:وردي,2:أبيض,3:أصفر,4:أرجواني,5:ذهبي,6:وردي فاتح
-    types = [1,2,3,4]  # 1:Rose,2:Tulip,3:Orchid,4:Goliat
+    colors = range(7)
+    types = [1,2,3,4]
     all_loads = []
     for color in colors:
         for qty in range(1, max_load+1):
-            # نحاول توزيع qty على الأنواع الأربعة بحد أقصى 2 لكل نوع (لتجنب الانفجار)
-            # سنقوم بإنشاء جميع التركيبات الممكنة التي لا يتجاوز مجموعها max_load
-            # لكن لضمان البساطة، سنقوم بإنشاء تركيبة واحدة فقط لكل لون وكمية (الأولى)
-            # إذا أردت جميع التركيبات، ستحتاج إلى recursion ولكن خارج القواعد.
-            # هنا سنقوم بطريقة مبسطة لكنها تغطي المثال: نأخذ من كل نوع الحد الأدنى الممكن
+
             remaining = qty
             comb = []
             for t in types:
@@ -566756,15 +566721,15 @@ reportlab
 ### <a id="📄-rules-py"></a>📄 `rules.py`
 
 **File Info:**
-- **Size**: 29.72 KB
+- **Size**: 29.21 KB
 - **Extension**: `.py`
 - **Language**: `python`
 - **Location**: `rules.py`
 - **Relative Path**: `root`
 - **Created**: 2026-05-29 14:13:59 (Asia/Damascus / GMT+03:00)
-- **Modified**: 2026-06-10 08:51:11 (Asia/Damascus / GMT+03:00)
-- **MD5**: `a2afc031bafeab91fde7d0185d33845e`
-- **SHA256**: `162949955a1ccad9e9370c15f857861c05cb705be935c57cca6d2374c8f1a9b7`
+- **Modified**: 2026-06-10 10:26:29 (Asia/Damascus / GMT+03:00)
+- **MD5**: `9599e02c36c7cb4d290663f27cfc567f`
+- **SHA256**: `2a96b65a39ad3b6dd15f87b6ba13cc5d6a758b0d3a176befd96344194e72e4e2`
 - **Encoding**: ASCII
 
 **File code content:**
@@ -566831,7 +566796,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.declare(StateNode(
             node_id=next_id, parent_id=nid,
             robot_x=rx, robot_y=ry,
-            target_x=2, target_y=3,  # العودة إلى المستودع بعد التحميل المختلط (سيتم تغييره لاحقاً عند التفريغ)
+            target_x=2, target_y=3, 
             carried_pavilion_id=0, carried_pavilion_name="Mixed",
             carried_load=load,
             p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n,
@@ -566872,7 +566837,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.declare(StateNode(
             node_id=next_id, parent_id=nid,
             robot_x=rx, robot_y=ry,
-            target_x=2, target_y=3,   # العودة إلى المستودع بعد التفريغ
+            target_x=2, target_y=3,
             carried_pavilion_id=0, carried_pavilion_name="Mixed",
             carried_load=new_load,
             p1_needs=new_p1, p2_needs=new_p2, p3_needs=new_p3, p4_needs=new_p4,
@@ -567003,7 +566968,6 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.modify(counter, next_id=next_id+1)
         self.modify(node, status="closed")
 
-    # قواعد التحميل (نفس النوع) – تم تصحيحها: لا يتم تصفير الاحتياجات
     @Rule(
         AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=0, carried_load=()),
         GridConfig(warehouse_x=MATCH.wx, warehouse_y=MATCH.wy),
@@ -567017,7 +566981,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         salience=280,
     )
     def load_pavilion_1(self, node, nid, g, rx, ry, p1n, p2n, p3n, p4n, px, py, name1, need1, counter, next_id):
-        new_h = calculate_h(rx, ry, p1n, p2n, p3n, p4n)   # الاحتياجات تبقى كما هي
+        new_h = calculate_h(rx, ry, p1n, p2n, p3n, p4n)
         self.declare(StateNode(node_id=next_id, parent_id=nid, robot_x=rx, robot_y=ry, target_x=px, target_y=py, carried_pavilion_id=1, carried_pavilion_name=name1, carried_load=need1, p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n, g=g+1, h=new_h, f=(g+1)+new_h, action="Load Rose Batch", status="open", printed=False))
         self.modify(counter, next_id=next_id+1)
         self.modify(node, status="closed")
@@ -567076,7 +567040,6 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.modify(counter, next_id=next_id+1)
         self.modify(node, status="closed")
 
-    # قواعد التفريغ (نفس النوع) – مع target_x=2, target_y=3
     @Rule(
         AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=1, carried_load=MATCH.load),
         Pavilion(pavilion_id=1, x=MATCH.px, y=MATCH.py, name=MATCH.name1),
@@ -567137,7 +567100,6 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.modify(counter, next_id=next_id+1)
         self.modify(node, status="closed")
 
-    # قواعد المنع والإغلاق
     @Rule(
         AS.node << StateNode(status="active", node_id=MATCH.nid, robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n),
         GridConfig(max_x=MATCH.max_x, max_y=MATCH.max_y),
@@ -567164,7 +567126,6 @@ class SmartFlowerEngine(KnowledgeEngine):
     def close_node(self, node):
         self.modify(node, status="closed")
 
-    # طباعة المسار
     @Rule(
         AS.path << SolutionPath(current_node_id=MATCH.nid),
         StateNode(node_id=MATCH.nid, parent_id=MATCH.pid, action=MATCH.act),

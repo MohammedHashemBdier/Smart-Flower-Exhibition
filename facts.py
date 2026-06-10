@@ -2,7 +2,6 @@ from experta import Fact, Field
 
 
 class GridConfig(Fact):
-    """إعدادات شبكة المعرض وحدود الحركة."""
 
     max_x = Field(int, mandatory=True)
     max_y = Field(int, mandatory=True)
@@ -11,7 +10,6 @@ class GridConfig(Fact):
 
 
 class Pavilion(Fact):
-    """وصف جناح واحد داخل المعرض."""
 
     pavilion_id = Field(int, mandatory=True)
     name = Field(str, mandatory=True)
@@ -21,7 +19,6 @@ class Pavilion(Fact):
 
 
 class StateNode(Fact):
-    """عقدة في شجرة البحث تمثل حالة الروبوت والمستودع والأجنحة."""
 
     node_id = Field(int, mandatory=True)
     parent_id = Field(int, default=-1)
@@ -45,13 +42,11 @@ class StateNode(Fact):
 
 
 class NodeCounter(Fact):
-    """عداد متسلسل لمعرفات العقد الجديدة."""
 
     next_id = Field(int, default=1)
 
 
 class ClosedState(Fact):
-    """حالة مغلقة لمنع تكرار التوسيع."""
 
     robot_x = Field(int, mandatory=True)
     robot_y = Field(int, mandatory=True)
@@ -65,16 +60,13 @@ class ClosedState(Fact):
 
 
 class SolutionPath(Fact):
-    """مؤشر لطباعة المسار النهائي بشكل تراجعي."""
 
     current_node_id = Field(int, mandatory=True)
 
 
 class MaxLoad(Fact):
-    """الحمولة القصوى للروبوت (عدد الباقات ككل)."""
 
     value = Field(int, mandatory=True)
 
 class PossibleMixedLoad(Fact):
-    """حمولة مختلطة (نفس اللون، أنواع مختلفة) مسموحة للتحميل."""
     load = Field(tuple, mandatory=True)

@@ -59,7 +59,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.declare(StateNode(
             node_id=next_id, parent_id=nid,
             robot_x=rx, robot_y=ry,
-            target_x=2, target_y=3,  # العودة إلى المستودع بعد التحميل المختلط (سيتم تغييره لاحقاً عند التفريغ)
+            target_x=2, target_y=3, 
             carried_pavilion_id=0, carried_pavilion_name="Mixed",
             carried_load=load,
             p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n,
@@ -100,7 +100,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.declare(StateNode(
             node_id=next_id, parent_id=nid,
             robot_x=rx, robot_y=ry,
-            target_x=2, target_y=3,   # العودة إلى المستودع بعد التفريغ
+            target_x=2, target_y=3,
             carried_pavilion_id=0, carried_pavilion_name="Mixed",
             carried_load=new_load,
             p1_needs=new_p1, p2_needs=new_p2, p3_needs=new_p3, p4_needs=new_p4,
@@ -231,7 +231,6 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.modify(counter, next_id=next_id+1)
         self.modify(node, status="closed")
 
-    # قواعد التحميل (نفس النوع) – تم تصحيحها: لا يتم تصفير الاحتياجات
     @Rule(
         AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=0, carried_load=()),
         GridConfig(warehouse_x=MATCH.wx, warehouse_y=MATCH.wy),
@@ -245,7 +244,7 @@ class SmartFlowerEngine(KnowledgeEngine):
         salience=280,
     )
     def load_pavilion_1(self, node, nid, g, rx, ry, p1n, p2n, p3n, p4n, px, py, name1, need1, counter, next_id):
-        new_h = calculate_h(rx, ry, p1n, p2n, p3n, p4n)   # الاحتياجات تبقى كما هي
+        new_h = calculate_h(rx, ry, p1n, p2n, p3n, p4n)
         self.declare(StateNode(node_id=next_id, parent_id=nid, robot_x=rx, robot_y=ry, target_x=px, target_y=py, carried_pavilion_id=1, carried_pavilion_name=name1, carried_load=need1, p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n, g=g+1, h=new_h, f=(g+1)+new_h, action="Load Rose Batch", status="open", printed=False))
         self.modify(counter, next_id=next_id+1)
         self.modify(node, status="closed")
@@ -304,7 +303,6 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.modify(counter, next_id=next_id+1)
         self.modify(node, status="closed")
 
-    # قواعد التفريغ (نفس النوع) – مع target_x=2, target_y=3
     @Rule(
         AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=1, carried_load=MATCH.load),
         Pavilion(pavilion_id=1, x=MATCH.px, y=MATCH.py, name=MATCH.name1),
@@ -365,7 +363,6 @@ class SmartFlowerEngine(KnowledgeEngine):
         self.modify(counter, next_id=next_id+1)
         self.modify(node, status="closed")
 
-    # قواعد المنع والإغلاق
     @Rule(
         AS.node << StateNode(status="active", node_id=MATCH.nid, robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n),
         GridConfig(max_x=MATCH.max_x, max_y=MATCH.max_y),
@@ -392,7 +389,6 @@ class SmartFlowerEngine(KnowledgeEngine):
     def close_node(self, node):
         self.modify(node, status="closed")
 
-    # طباعة المسار
     @Rule(
         AS.path << SolutionPath(current_node_id=MATCH.nid),
         StateNode(node_id=MATCH.nid, parent_id=MATCH.pid, action=MATCH.act),
