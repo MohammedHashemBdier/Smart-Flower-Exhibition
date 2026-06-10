@@ -74,3 +74,7 @@ class MaxLoad(Fact):
     """الحمولة القصوى للروبوت (عدد الباقات ككل)."""
 
     value = Field(int, mandatory=True)
+
+class PossibleMixedLoad(Fact):
+    """حمولة مختلطة (نفس اللون، أنواع مختلفة) مسموحة للتحميل."""
+    load = Field(tuple, mandatory=True)

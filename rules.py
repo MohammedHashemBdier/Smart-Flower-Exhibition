@@ -5,7 +5,7 @@ collections.Mapping = collections.abc.Mapping
 
 from experta import AS, KnowledgeEngine, MATCH, NOT, Rule, TEST, DefFacts
 
-from facts import ClosedState, GridConfig, NodeCounter, Pavilion, SolutionPath, StateNode, MaxLoad
+from facts import ClosedState, GridConfig, NodeCounter, Pavilion, PossibleMixedLoad, SolutionPath, StateNode, MaxLoad
 from heuristics import all_needs_zero, best_pavilion_id, calculate_h, carried_total, has_invalid_coordinates
 
 
@@ -60,6 +60,80 @@ class SmartFlowerEngine(KnowledgeEngine):
             printed=False,
         )
 
+    @Rule(
+        AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=0, carried_load=()),
+        GridConfig(warehouse_x=MATCH.wx, warehouse_y=MATCH.wy),
+        MaxLoad(value=MATCH.max_load),
+        TEST(lambda rx, ry, wx, wy: rx == wx and ry == wy),
+        PossibleMixedLoad(load=MATCH.load),
+        AS.counter << NodeCounter(next_id=MATCH.next_id),
+        salience=279,
+    )
+    def load_same_color(self, node, nid, g, rx, ry, p1n, p2n, p3n, p4n, load, counter, next_id, max_load):
+        from heuristics import calculate_h
+        total_qty = sum(q for _, _, q in load)
+        if total_qty > max_load:
+            self.modify(node, status="closed")
+            return
+        new_h = calculate_h(rx, ry, p1n, p2n, p3n, p4n)
+        self.declare(StateNode(
+            node_id=next_id, parent_id=nid,
+            robot_x=rx, robot_y=ry, target_x=3, target_y=2,
+            carried_pavilion_id=0, carried_pavilion_name="Mixed",
+            carried_load=load,
+            p1_needs=p1n, p2_needs=p2n, p3_needs=p3n, p4_needs=p4n,
+            g=g+1, h=new_h, f=(g+1)+new_h,
+            action="Load Same-Color Mixed Batch", status="open", printed=False
+        ))
+        self.modify(counter, next_id=next_id+1)
+        self.modify(node, status="closed")
+
+    @Rule(
+        AS.node << StateNode(status="active", robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, node_id=MATCH.nid, g=MATCH.g, p1_needs=MATCH.p1n, p2_needs=MATCH.p2n, p3_needs=MATCH.p3n, p4_needs=MATCH.p4n, carried_pavilion_id=0, carried_load=MATCH.load),
+        Pavilion(pavilion_id=MATCH.pid, x=MATCH.px, y=MATCH.py, name=MATCH.name),
+        TEST(lambda rx, ry, px, py: rx == px and ry == py),
+        TEST(lambda load: len(load) > 0),
+        AS.counter << NodeCounter(next_id=MATCH.next_id),
+        salience=259,
+    )
+    def unload_mixed_load(self, node, nid, g, rx, ry, tx, ty, p1n, p2n, p3n, p4n, load, pid, name, counter, next_id):
+        from heuristics import deduct_load_from_needs, calculate_h
+        # تحديد الاحتياجات الصحيحة حسب الجناح
+        if pid == 1:
+            needs = p1n
+        elif pid == 2:
+            needs = p2n
+        elif pid == 3:
+            needs = p3n
+        else:
+            needs = p4n
+        new_load, new_needs = deduct_load_from_needs(load, needs, pid)
+        # تحديث الاحتياجات
+        if pid == 1:
+            new_p1 = new_needs
+            new_p2, new_p3, new_p4 = p2n, p3n, p4n
+        elif pid == 2:
+            new_p2 = new_needs
+            new_p1, new_p3, new_p4 = p1n, p3n, p4n
+        elif pid == 3:
+            new_p3 = new_needs
+            new_p1, new_p2, new_p4 = p1n, p2n, p4n
+        else:
+            new_p4 = new_needs
+            new_p1, new_p2, new_p3 = p1n, p2n, p3n
+        new_h = calculate_h(rx, ry, new_p1, new_p2, new_p3, new_p4)
+        self.declare(StateNode(
+            node_id=next_id, parent_id=nid,
+            robot_x=rx, robot_y=ry, target_x=3, target_y=2,
+            carried_pavilion_id=0, carried_pavilion_name="Mixed",
+            carried_load=new_load,
+            p1_needs=new_p1, p2_needs=new_p2, p3_needs=new_p3, p4_needs=new_p4,
+            g=g+1, h=new_h, f=(g+1)+new_h,
+            action=f"Unload Mixed Batch at {name}", status="open", printed=False
+        ))
+        self.modify(counter, next_id=next_id+1)
+        self.modify(node, status="closed")
+        
     @Rule(
         AS.node << StateNode(
             node_id=MATCH.nid,
@@ -132,7 +206,7 @@ class SmartFlowerEngine(KnowledgeEngine):
 
     @Rule(
         AS.node << StateNode(status="open", printed=False, node_id=MATCH.nid, parent_id=MATCH.pid, robot_x=MATCH.rx, robot_y=MATCH.ry, target_x=MATCH.tx, target_y=MATCH.ty, g=MATCH.g, h=MATCH.h, f=MATCH.f, action=MATCH.action, carried_pavilion_name=MATCH.cname),
-        salience=350,
+        salience=450,
     )
     def print_tree_node(self, node, nid, pid, rx, ry, tx, ty, g, h, f, action, cname):
         print(f"[Tree] id={nid} parent={pid} pos=({rx},{ry}) target=({tx},{ty}) g={g} h={h} f={f} action={action} carry={cname}")

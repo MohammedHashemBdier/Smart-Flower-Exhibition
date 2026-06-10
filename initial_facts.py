@@ -1,4 +1,4 @@
-from facts import GridConfig, Pavilion, NodeCounter, StateNode
+from facts import GridConfig, Pavilion, NodeCounter, PossibleMixedLoad, StateNode
 from heuristics import calculate_h
 
 
@@ -11,6 +11,9 @@ def declare_initial(engine):
     engine.declare(Pavilion(pavilion_id=4, name="Goliat Rose", x=2, y=5, needs=(2, 2, 0)))
 
     engine.declare(NodeCounter(next_id=1))
+    from heuristics import ALL_SAME_COLOR_LOADS
+    for load in ALL_SAME_COLOR_LOADS:
+        engine.declare(PossibleMixedLoad(load=load))
 
     start_x = 1
     start_y = 3
