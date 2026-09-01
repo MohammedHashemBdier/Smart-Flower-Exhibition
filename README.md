@@ -1,62 +1,57 @@
-# مشروع: Smart Flower Exhibition — نظام قواعد معرفة (Experta)
+# مشروع: Smart Flower Exhibition - معرض الزهور الذكي (Experta)
 
-## وصف سريع
+## 📌 عن المشروع
 
-مشروع عملي بمادة نظم قواعد المعرفة (جامعة دمشق) — محرك قواعد مبني بـ `experta` لحل مسألة توصيل باقات في معرض شبكي باستخدام نهج شبيه بـ A\*، لكن كله ممَثل كـ facts و rules (بدون استخدام `for/while/if/else` في كود الحل النهائي).
+مشروع نظام خبير لإدارة معرض الزهور (معرض الزهور الذكي) - يتم فيه بناء محرك قواعد باستخدام مكتبة `experta` في بيثون لإدارة وتوجيه المعرض بدلاً من البحث في خوارزميات مثل \*A، مع الاعتماد الكامل على الحقائق والقواعد (Facts & Rules) بدلاً من استخدام الحلقات الجاهزة `for/while/if/else`.
 
-## متطلبات
+---
 
-- Python 3.8+ (يفضل استخدام virtual environment)
-- الحزمة `experta`
+## 🛠️ المطلب والتثبيت
 
-## إعداد بيئة (ويندوز PowerShell)
+- **Python 3.8+** (ينصح باستخدام بيئة افتراضية virtual environment)
+- **مكتبة `experta`**
+
+### خطوات التشغيل (في PowerShell):
 
 ```powershell
+# إنشاء البيئة الافتراضية وتفعيلها
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-pip install experta
+
+# تثبيت المكتبات المطلوبة
+pip install -r requirements.txt
 ```
 
-(يمكن إضافة `requirements.txt` لاحقًا إذا رغبت)
+---
 
-## تشغيل المشروع
+## 🚀 تشغيل المشروع
 
-بسيط — يشغّل `main.py` الذي يحمّل الحقائق الابتدائية من قواعد `rules.py` ثم يبدأ البحث:
+لتشغيل محرك القواعد واختبار النظام الخبير:
 
 ```powershell
 python main.py
 ```
 
-## تعديل الرقعة والإعدادات
+---
 
-- يوجد ملف `game_config.json` يحتوي مثال الرقعة وإعدادات الجناح، المستودع، وموقع الروبوت.
-  لتوليد ملف الحقائق الصريح (`initial_facts.py`) من `game_config.json` استعمل مولد التطوير الموجود في `tools/generate_initial_facts.py`:
+## 📂 هيكلية المشروع
 
-```powershell
-python tools\generate_initial_facts.py --config game_config.json --out initial_facts.py
+```
+smart_flower_exhibition/
+├── facts.py             # تعريف أنواع الحقائق (Facts)
+├── initial_facts.py     # الحقائق الابتدائية للمعرض
+├── rules.py             # قواعد النظام الخبير (Rules & Engine)
+├── heuristics.py        # دلالات وتقييمات اختيار القرار
+├── game_config.json     # إعدادات المعرض والأجسام
+├── main.py              # نقطة بداية التشغيل وتنفيذ المحرك
+├── requirements.txt     # المكتبات المطلوبة
+└── tools/               # أدوات مساعدة توليد الحقائق
 ```
 
-أضفت سكربت مطور `tools/generate_initial_facts.py` لتوليد `initial_facts.py` من `game_config.json` عند الحاجة. تم نقل سكربتات المساعدة إلى مجلد `tools/` (أدوات تطوير/بناء)، وهي خارج منطق الـ KB النهائي.
+---
 
-## ملاحظات مهمة عن شروط المادة
+## 📄 معلومات المادة والتأطير
 
-- ملف الحل النهائي (الكود الذي سيُدرَس ويُقدّم) يجب أن لا يحتوي تعليمات إجرائية مثل `for`, `while`, `if`, `else` في منطق الحل. لذلك قمنا بإحدى الطريقتين:
-  - وضع الحقائق الابتدائية كـ `@DefFacts()` داخل `rules.py` (حاليًا مُفعّل)، أو
-  - توليد ملف `initial_facts.py` صريح يحتوي `engine.declare(...)` بدون حلقات/شروط.
-
-## ما قمتُ به بالفعل
-
-- نقلت تهيئة الحالة الابتدائية إلى `@DefFacts()` داخل `rules.py` (محرك الخبرة يحمّلها تلقائيًا عند `engine.reset()`).
-- أضفت سكربت مطور `scripts/generate_initial_facts.py` لتوليد `initial_facts.py` من `game_config.json` عند الحاجة.
-
-## اقتراحات للخطوات التالية
-
-- إضافة `requirements.txt` لتجميد الحزم (أفعل ذلك إن رغبت).
-- إضافة اختبارات: `tests/test_heuristics.py` و`tests/test_run_smoke.py` (أستطيع إضافتها الآن).
-- تجهيز ملف تسليم `deliverables.md` + أرشيف ZIP للتسليم.
-
-كيف تريد أن أتابع الآن؟
-
-- أضيف اختبارات (unit + smoke)?
-- أجهز `requirements.txt`؟
-- أجهز ملف تسليم/قائمة تحقق؟
+- **المادة**: أنظمة المعرفة (Knowledge Based Systems - الوظيفة الأولى)
+- **الجامعة**: جامعة دمشق - كلية الهندسة المعلوماتية (السنة الرابعة)
+- **المطور**: محمد هاشم بدير (Mohammed Hashem Bdier)
